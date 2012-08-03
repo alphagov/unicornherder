@@ -2,4 +2,5 @@
 /.coverage
 /.tox
 /*.egg-info
+/dist
 
