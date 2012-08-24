@@ -56,36 +56,46 @@ class TestHerder(object):
         popen_mock.return_value.pid = -1
         timeout_mock.side_effect = fake_timeout_fail
         h = Herder()
-        h._boot_loop = lambda: True
         popen_mock.return_value.poll.return_value = None
         ret = h.spawn()
         assert_false(ret)
         popen_mock.return_value.terminate.assert_called_once_with()
 
+    @patch('unicornherder.herder.time.sleep')
     @patch('unicornherder.herder.psutil.Process')
     @patch('%s.open' % builtin_mod)
-    def test_loop_valid_pid(self, open_mock, process_mock):
+    def test_loop_valid_pid(self, open_mock, process_mock, sleep_mock):
         open_mock.return_value.read.return_value = '123\n'
         h = Herder()
         ret = h._loop_inner()
-        assert_equal(ret, 0)
+        assert_equal(ret, True)
         process_mock.assert_called_once_with(123)
 
+    @patch('unicornherder.herder.time.sleep')
     @patch('%s.open' % builtin_mod)
-    def test_loop_invalid_pid(self, open_mock):
+    def test_loop_invalid_pid(self, open_mock, sleep_mock):
         open_mock.return_value.read.return_value = 'foobar'
         h = Herder()
-        ret = h._loop_inner()
-        assert_equal(ret, 1)
+        assert_raises(HerderError, h._loop_inner)
 
+    @patch('unicornherder.herder.time.sleep')
     @patch('%s.open' % builtin_mod)
-    def test_loop_nonexistent_pidfile(self, open_mock):
+    def test_loop_nonexistent_pidfile(self, open_mock, sleep_mock):
         def _fail():
             raise IOError()
         open_mock.return_value.read.side_effect = _fail
         h = Herder()
-        ret = h._loop_inner()
-        assert_equal(ret, 1)
+        assert_raises(HerderError, h._loop_inner)
+
+    @patch('unicornherder.herder.time.sleep')
+    @patch('%s.open' % builtin_mod)
+    def test_loop_nonexistent_pidfile_terminating(self, open_mock, sleep_mock):
+        def _fail():
+            raise IOError()
+        open_mock.return_value.read.side_effect = _fail
+        h = Herder()
+        h.terminating = True
+        assert_equal(h._loop_inner(), False)
 
     @patch('unicornherder.herder.time.sleep')
     @patch('unicornherder.herder.psutil.Process')
@@ -101,12 +111,12 @@ class TestHerder(object):
         open_mock.return_value.read.return_value = '123\n'
         process_mock.return_value = proc1
         ret = h._loop_inner()
-        assert_equal(ret, 0)
+        assert_equal(ret, True)
 
         open_mock.return_value.read.return_value = '456\n'
         process_mock.return_value = proc2
         ret = h._loop_inner()
-        assert_equal(ret, 0)
+        assert_equal(ret, True)
 
         expected_calls = []
         assert_equal(proc1.mock_calls, expected_calls)
@@ -126,7 +136,7 @@ class TestHerder(object):
         open_mock.return_value.read.return_value = '123\n'
         process_mock.return_value = proc1
         ret = h._loop_inner()
-        assert_equal(ret, 0)
+        assert_equal(ret, True)
 
         # Simulate SIGHUP
         h._handle_HUP(signal.SIGHUP, None)
@@ -134,7 +144,7 @@ class TestHerder(object):
         open_mock.return_value.read.return_value = '456\n'
         process_mock.return_value = proc2
         ret = h._loop_inner()
-        assert_equal(ret, 0)
+        assert_equal(ret, True)
 
         expected_calls = [call.send_signal(signal.SIGUSR2),
                           call.send_signal(signal.SIGWINCH),

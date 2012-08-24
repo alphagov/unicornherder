@@ -17,6 +17,8 @@ COMMANDS = {
 
 MANAGED_PIDS = set([])
 
+WORKER_WAIT = 120
+
 
 class HerderError(Exception):
     pass
@@ -53,6 +55,7 @@ class Herder(object):
 
         self.master = None
         self.reloading = False
+        self.terminating = False
 
     def spawn(self):
         """
@@ -81,16 +84,6 @@ class Herder(object):
                 process.terminate()
             return False
 
-        try:
-            with timeout(5):
-                self._boot_loop()
-        except TimeoutError:
-            log.error('%s failed to write a pidfile within 5 seconds. Sending TERM '
-                      'and exiting.', self.unicorn)
-            if process.poll() is None:
-                process.terminate()
-            return False
-
         # If we got this far, unicorn has daemonized, and we no longer need to
         # worry about the original process.
         MANAGED_PIDS.remove(process.pid)
@@ -113,25 +106,26 @@ class Herder(object):
     def loop(self):
         """Enter the monitoring loop"""
         while True:
-            ret = self._loop_inner()
-            if ret != 0:
+            if not self._loop_inner():
                 # The unicorn has died. So should we.
                 log.error('Unicorn died. Exiting.')
-                return ret
+                return 1
             time.sleep(2)
 
     def _loop_inner(self):
         old_master = self.master
         pid = self._read_pidfile()
 
+        if pid is None:
+            return False
+
         try:
             self.master = psutil.Process(pid)
-        except (psutil.NoSuchProcess, TypeError):
-            return 1
+        except psutil.NoSuchProcess:
+            return False
 
         if old_master is None:
-            log.info('Unicorn booted (PID %s)',
-                     self.master.pid)
+            log.info('Unicorn booted (PID %s)', self.master.pid)
 
             MANAGED_PIDS.add(self.master.pid)
 
@@ -150,32 +144,47 @@ class Herder(object):
 
             MANAGED_PIDS.remove(old_master.pid)
 
-        return 0
-
-    def _boot_loop(self):
-        while True:
-            if self._loop_inner() == 0:
-                break
-            time.sleep(1)
+        return True
 
     def _read_pidfile(self):
-        try:
-            content = open(self.pidfile).read()
-        except IOError:
-            return None
+        for _ in range(5):
+            try:
+                content = open(self.pidfile).read()
+            except IOError as e:
+                # If we are expecting unicorn to die, then this is normal, and
+                # we can just return None, thus triggering a clean exit of the
+                # Herder.
+                if self.terminating:
+                    return None
+                else:
+                    log.debug('Got IOError while attempting to read pidfile: %s', e)
+                    log.debug('This is usually not fatal. Retrying in a moment...')
+                    time.sleep(1)
+                    continue
 
-        try:
-            pid = int(content)
-        except ValueError:
-            return None
+            try:
+                pid = int(content)
+            except ValueError as e:
+                log.debug('Got ValueError while reading pidfile. Is "%s" an integer? %s', 
+                          content, e)
+                log.debug('This is usually not fatal. Retrying in a moment...')
+                time.sleep(1)
+                continue
 
-        return pid
+            return pid
+
+        raise HerderError('Failed to read pidfile %s after 5 attempts, aborting!' %
+                          self.pidfile)    
 
     def _handle_signal(self, name):
         def _handler(signum, frame):
             if self.master is None:
                 log.warn("Caught %s but have no tracked process.", name)
                 return
+
+            if signum in [signal.SIGINT, signal.SIGQUIT, signal.SIGTERM]:
+                log.debug("Caught %s: expecting termination.", name)
+                self.terminating = True
 
             log.debug("Forwarding %s to PID %s", name, self.master.pid)
             self.master.send_signal(signum)
@@ -206,9 +215,10 @@ def _emergency_slaughter():
         except:
             pass
 
+
 def _wait_for_workers(process):
     # TODO: do something smarter here
-    time.sleep(120)
+    time.sleep(WORKER_WAIT)
 
 
 def _kill_old_master(process):
