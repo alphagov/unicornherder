@@ -44,6 +44,19 @@ class Herder(object):
     """
 
     def __init__(self, unicorn='gunicorn', pidfile=None, args=''):
+        """
+
+        Creates a new Herder instance.
+
+        unicorn - the type of unicorn to herd; either 'unicorn' or 'gunicorn'
+                  (Default: gunicorn)
+        pidfile - path of the pidfile to write
+                  (Default: gunicorn.pid or unicorn.pid depending on the value of
+                   the unicorn parameter)
+        args    - any additional arguments to pass to the unicorn executable
+                  (Default: '')
+
+        """
         self.unicorn = unicorn
         self.pidfile = '%s.pid' % self.unicorn if pidfile is None else pidfile
         self.args = args
