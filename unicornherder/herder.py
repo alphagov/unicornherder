@@ -83,7 +83,15 @@ class Herder(object):
 
         log.debug("Calling %s: %s", self.unicorn, cmd)
 
-        process = subprocess.Popen(shlex.split(cmd))
+        cmd = shlex.split(cmd)
+        try:
+            process = subprocess.Popen(cmd)
+        except OSError as e:
+            if e.errno == 2:
+                log.error("Command '%s' not found. Is it installed?", cmd[0])
+                return False
+            else:
+                raise
 
         MANAGED_PIDS.add(process.pid)
 
@@ -178,7 +186,7 @@ class Herder(object):
             try:
                 pid = int(content)
             except ValueError as e:
-                log.debug('Got ValueError while reading pidfile. Is "%s" an integer? %s', 
+                log.debug('Got ValueError while reading pidfile. Is "%s" an integer? %s',
                           content, e)
                 log.debug('This is usually not fatal. Retrying in a moment...')
                 time.sleep(1)
@@ -187,7 +195,7 @@ class Herder(object):
             return pid
 
         raise HerderError('Failed to read pidfile %s after 5 attempts, aborting!' %
-                          self.pidfile)    
+                          self.pidfile)
 
     def _handle_signal(self, name):
         def _handler(signum, frame):

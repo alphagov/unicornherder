@@ -9,14 +9,14 @@ from . import __version__
 from .herder import Herder
 
 
-parser = argparse.ArgumentParser(description='Manage daemonized (g)unicorns.',
-                                 version=__version__)
+parser = argparse.ArgumentParser(description='Manage daemonized (g)unicorns.')
 
 parser.add_argument('-u', '--unicorn', default='gunicorn', metavar='TYPE',
                     choices=['unicorn', 'gunicorn'],
                     help='The type of unicorn to manage (gunicorn, unicorn)')
 parser.add_argument('-p', '--pidfile', metavar='PATH',
                     help='Path to the pidfile that unicorn will write')
+parser.add_argument('-v', '--version', action='version', version=__version__)
 parser.add_argument('args', nargs=argparse.REMAINDER,
                     help='Any additional arguments will be passed to unicorn/'
                          "gunicorn. Prefix with '--' if you are passing flags (e.g. "
