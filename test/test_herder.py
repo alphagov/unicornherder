@@ -61,6 +61,18 @@ class TestHerder(object):
         assert_false(ret)
         popen_mock.return_value.terminate.assert_called_once_with()
 
+    @patch('unicornherder.herder.subprocess.Popen')
+    @patch('unicornherder.herder.timeout')
+    def test_configurable_boot_timeout(self, timeout_mock, popen_mock):
+        popen_mock.return_value.pid = -1
+        timeout_mock.side_effect = fake_timeout_fail
+        h = Herder(boot_timeout=45)
+        popen_mock.return_value.poll.return_value = None
+        ret = h.spawn()
+        timeout_mock.assert_called_once_with(45)
+        assert_false(ret)
+        popen_mock.return_value.terminate.assert_called_once_with()
+
     @patch('unicornherder.herder.time.sleep')
     @patch('unicornherder.herder.psutil.Process')
     @patch('%s.open' % builtin_mod)
