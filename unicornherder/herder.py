@@ -44,7 +44,7 @@ class Herder(object):
 
     """
 
-    def __init__(self, unicorn='gunicorn', pidfile=None, args=''):
+    def __init__(self, unicorn='gunicorn', pidfile=None, boot_timeout=30, args=''):
         """
 
         Creates a new Herder instance.
@@ -61,6 +61,7 @@ class Herder(object):
         self.unicorn = unicorn
         self.pidfile = '%s.pid' % self.unicorn if pidfile is None else pidfile
         self.args = args
+        self.boot_timeout = boot_timeout
 
         try:
             COMMANDS[self.unicorn]
@@ -97,11 +98,11 @@ class Herder(object):
         MANAGED_PIDS.add(process.pid)
 
         try:
-            with timeout(30):
+            with timeout(self.boot_timeout):
                 process.wait()
         except TimeoutError:
-            log.error('%s failed to daemonize within 30 seconds. Sending TERM '
-                      'and exiting.', self.unicorn)
+            log.error('%s failed to daemonize within %s seconds. Sending TERM '
+                      'and exiting.', self.unicorn, self.boot_timeout)
             if process.poll() is None:
                 process.terminate()
             return False
