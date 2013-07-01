@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 from unicornherder import __version__
 
 install_requires = [
-    'psutil==0.5.1',
+    'psutil>=0.5.1',
 ]
 
 if sys.version_info < (2, 7):
