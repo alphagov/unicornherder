@@ -13,7 +13,8 @@ log = logging.getLogger(__name__)
 COMMANDS = {
     'unicorn': 'unicorn -D -P "{pidfile}" {args}',
     'gunicorn': 'gunicorn -D -p "{pidfile}" {args}',
-    'gunicorn_django': 'gunicorn_django -D -p "{pidfile}" {args}'
+    'gunicorn_django': 'gunicorn_django -D -p "{pidfile}" {args}',
+    'unicorn_bin': '{unicorn_bin} -D -p "{pidfile}" {args}'
 }
 
 MANAGED_PIDS = set([])
@@ -86,8 +87,12 @@ class Herder(object):
         Returns False if unicorn fails to daemonize, and True otherwise.
 
         """
-        cmd = self.unicorn
-        cmd = cmd.format(pidfile=self.pidfile, args=self.args)
+        if self.unicorn in COMMANDS:
+            cmd = COMMANDS[self.unicorn]
+            cmd = cmd.format(pidfile=self.pidfile, args=self.args)
+        else:
+            cmd = COMMANDS['unicorn_bin']
+            cmd = cmd.format(unicorn_bin=self.unicorn, pidfile=self.pidfile, args=self.args)
 
         log.debug("Calling %s: %s", self.unicorn, cmd)
 
