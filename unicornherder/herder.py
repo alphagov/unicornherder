@@ -14,7 +14,8 @@ COMMANDS = {
     'unicorn': 'unicorn -D -P "{pidfile}" {args}',
     'unicorn_rails': 'unicorn_rails -D -P "{pidfile}" {args}',
     'gunicorn': 'gunicorn -D -p "{pidfile}" {args}',
-    'gunicorn_django': 'gunicorn_django -D -p "{pidfile}" {args}'
+    'gunicorn_django': 'gunicorn_django -D -p "{pidfile}" {args}',
+    'unicorn_bin': '{unicorn_bin} -D -p "{pidfile}" {args}'
 }
 
 MANAGED_PIDS = set([])
@@ -45,27 +46,33 @@ class Herder(object):
 
     """
 
-    def __init__(self, unicorn='gunicorn', pidfile=None, boot_timeout=30, args=''):
+    def __init__(self, unicorn='gunicorn', unicorn_bin=None, pidfile=None, boot_timeout=30, args=''):
         """
 
         Creates a new Herder instance.
 
-        unicorn - the type of unicorn to herd; either 'unicorn' or 'gunicorn'
-                  (Default: gunicorn)
-        pidfile - path of the pidfile to write
-                  (Default: gunicorn.pid or unicorn.pid depending on the value of
-                   the unicorn parameter)
-        args    - any additional arguments to pass to the unicorn executable
-                  (Default: '')
+        unicorn     - the type of unicorn to herd; either 'unicorn' or 'gunicorn'
+                      (Default: gunicorn)
+        unicorn_bin - path of specific unicorn to run
+                      (Default: None)
+        pidfile     - path of the pidfile to write
+                      (Default: gunicorn.pid or unicorn.pid depending on the value of
+                       the unicorn parameter)
+        args        - any additional arguments to pass to the unicorn executable
+                      (Default: '')
 
         """
-        self.unicorn = unicorn
+        if unicorn_bin:
+            self.unicorn = unicorn_bin
+        else:
+            self.unicorn = unicorn
         self.pidfile = '%s.pid' % self.unicorn if pidfile is None else pidfile
         self.args = args
         self.boot_timeout = boot_timeout
 
         try:
-            COMMANDS[self.unicorn]
+            if not unicorn_bin:
+                COMMANDS[self.unicorn]
         except KeyError:
             raise HerderError('Unknown unicorn type: %s' % self.unicorn)
 
@@ -81,8 +88,12 @@ class Herder(object):
         Returns False if unicorn fails to daemonize, and True otherwise.
 
         """
-        cmd = COMMANDS[self.unicorn]
-        cmd = cmd.format(pidfile=self.pidfile, args=self.args)
+        if self.unicorn in COMMANDS:
+            cmd = COMMANDS[self.unicorn]
+            cmd = cmd.format(pidfile=self.pidfile, args=self.args)
+        else:
+            cmd = COMMANDS['unicorn_bin']
+            cmd = cmd.format(unicorn_bin=self.unicorn, pidfile=self.pidfile, args=self.args)
 
         log.debug("Calling %s: %s", self.unicorn, cmd)
 
