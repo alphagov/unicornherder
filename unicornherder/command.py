@@ -17,6 +17,9 @@ parser.add_argument('-u', '--unicorn', default='gunicorn', metavar='TYPE',
 parser.add_argument('-b', '--unicorn-bin', default=None, metavar='UNICORN_BIN',
                     type=str, dest='unicorn_bin',
                     help='path to a specific unicorn to manage')
+parser.add_argument('-g', '--gunicorn-bin', default=None, metavar='GUNICORN_BIN',
+                    type=str, dest='gunicorn_bin',
+                    help='path to a specific gunicorn to manage')
 parser.add_argument('-p', '--pidfile', metavar='PATH',
                     help='Path to the pidfile that unicorn will write')
 parser.add_argument('-t', '--timeout', default=30, type=int, metavar='30', dest='boot_timeout',
