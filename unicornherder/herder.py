@@ -13,9 +13,9 @@ log = logging.getLogger(__name__)
 COMMANDS = {
     'unicorn': 'unicorn -D -P "{pidfile}" {args}',
     'unicorn_rails': 'unicorn_rails -D -P "{pidfile}" {args}',
-    'unicorn_bin': '{unicorn_bin} -D -P "{pidfile}" {args}'
+    'unicorn_bin': '{unicorn_bin} -D -P "{pidfile}" {args}',
     'gunicorn': 'gunicorn -D -p "{pidfile}" {args}',
-    'gunicorn_django': 'gunicorn_django -D -p "{pidfile}" {args}',
+    'gunicorn_django': 'gunicorn_django -D -p "{pidfile}" {args}'
 }
 
 MANAGED_PIDS = set([])
