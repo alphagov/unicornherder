@@ -66,6 +66,10 @@ class Herder(object):
                        (Default: '')
 
         """
+
+        self.unicorn_bin = unicorn_bin
+        self.gunicorn_bin = gunicorn_bin
+
         if unicorn_bin:
             self.unicorn = unicorn_bin
         elif gunicorn_bin:
