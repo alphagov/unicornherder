@@ -201,17 +201,20 @@ class Herder(object):
             try:
                 content = open(self.pidfile).read()
             except IOError as e:
-                # If we are expecting unicorn to die, then this is normal, and
-                # we can just return None, thus triggering a clean exit of the
-                # Herder.
-                if self.terminating:
-                    return None
-                else:
-                    log.debug('Got IOError while attempting to read pidfile: %s', e)
-                    log.debug('This is usually not fatal. Retrying in a moment...')
-                    time.sleep(1)
-                    continue
-
+                try:
+                    log.debug('pidfile missing, checking for %s.oldbin', self.pidfile)
+                    content = open(self.pidfile + ".oldbin").read()
+                except IOError as e:
+                    # If we are expecting unicorn to die, then this is normal, and
+                    # we can just return None, thus triggering a clean exit of the
+                    # Herder.
+                    if self.terminating:
+                        return None
+                    else:
+                        log.debug('Got IOError while attempting to read pidfile: %s', e)
+                        log.debug('This is usually not fatal. Retrying in a moment...')
+                        time.sleep(1)
+                        continue
             try:
                 pid = int(content)
             except ValueError as e:
