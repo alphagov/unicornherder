@@ -25,6 +25,10 @@ class TestHerder(object):
         h = Herder(unicorn='gunicorn')
         assert_equal(h.unicorn, 'gunicorn')
 
+    def test_init_puma(self):
+        h = Herder(unicorn='puma')
+        assert_equal(h.unicorn, 'puma')
+
     def test_init_unicornbad(self):
         assert_raises(HerderError, Herder, unicorn='unicornbad')
 
@@ -49,6 +53,14 @@ class TestHerder(object):
         h.spawn()
         assert_equal(popen_mock.call_count, 1)
         popen_mock.assert_called_once_with(['unicorn', '-D', '-P', 'unicorn.pid'])
+
+    @patch('unicornherder.herder.subprocess.Popen')
+    def test_spawn_puma(self, popen_mock):
+        h = Herder(unicorn='puma')
+        h._boot_loop = lambda: True
+        h.spawn()
+        assert_equal(popen_mock.call_count, 1)
+        popen_mock.assert_called_once_with(['puma', '-d', '--pidfile', 'puma.pid'])
 
     @patch('unicornherder.herder.subprocess.Popen')
     @patch('unicornherder.herder.timeout')

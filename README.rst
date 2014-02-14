@@ -4,7 +4,7 @@ Unicorn Herder
 .. image:: https://secure.travis-ci.org/alphagov/unicornherder.png
    :target: http://travis-ci.org/alphagov/unicornherder
 
-`Unicorn <http://unicorn.bogomips.org/>`_ and `Gunicorn
+`Unicorn <http://unicorn.bogomips.org/>`_, `Puma <http://puma.io/>`_ and `Gunicorn
 <http://gunicorn.org/>`_ are awesome tools for people writing web services in
 Ruby and Python. One of the more nifty features of both programs is their
 ability to reload application code on-the-fly, by spawning a new master
@@ -40,6 +40,10 @@ With gunicorn::
 With unicorn (using `Bundler <http://gembundler.com>`_)::
 
     $ bundle exec unicornherder -u unicorn
+
+With puma (using `Bundler <http://gembundler.com>`_)::
+
+    $ bundle exec unicornherder -u puma
 
 Signals
 -------

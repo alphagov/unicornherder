@@ -12,13 +12,16 @@ from .herder import Herder
 parser = argparse.ArgumentParser(description='Manage daemonized (g)unicorns.')
 
 parser.add_argument('-u', '--unicorn', default='gunicorn', metavar='TYPE',
-                    choices=['unicorn', 'unicorn_rails', 'gunicorn','gunicorn_django'],
-                    help='The type of unicorn to manage (gunicorn, gunicorn_django, unicorn, unicorn_rails)')
+                    choices=['unicorn', 'unicorn_rails', 'gunicorn','gunicorn_django', 'puma'],
+                    help='The type of unicorn to manage (gunicorn, gunicorn_django, unicorn, unicorn_rails, puma)')
 parser.add_argument('-b', '--unicorn-bin', default=None, metavar='UNICORN_BIN',
                     type=str, dest='unicorn_bin',
                     help='path to a specific unicorn to manage')
 parser.add_argument('-g', '--gunicorn-bin', default=None, metavar='GUNICORN_BIN',
                     type=str, dest='gunicorn_bin',
+                    help='path to a specific gunicorn to manage')
+parser.add_argument('-P', '--puma-bin', default=None, metavar='PUMA_BIN',
+                    type=str, dest='puma_bin',
                     help='path to a specific gunicorn to manage')
 parser.add_argument('-p', '--pidfile', metavar='PATH',
                     help='Path to the pidfile that unicorn will write')
