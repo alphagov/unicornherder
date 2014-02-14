@@ -16,7 +16,9 @@ COMMANDS = {
     'unicorn_bin': '{unicorn_bin} -D -P "{pidfile}" {args}',
     'gunicorn': 'gunicorn -D -p "{pidfile}" {args}',
     'gunicorn_django': 'gunicorn_django -D -p "{pidfile}" {args}',
-    'gunicorn_bin': '{gunicorn_bin} -D -p "{pidfile}" {args}'
+    'gunicorn_bin': '{gunicorn_bin} -D -p "{pidfile}" {args}',
+    'puma': 'puma -d --pidfile "{pidfile}" {args}',
+    'puma_bin': '{puma_bin} -d --pidfile "{pidfile}" {args}'
 }
 
 MANAGED_PIDS = set([])
@@ -48,7 +50,7 @@ class Herder(object):
     """
 
     def __init__(self, unicorn='gunicorn', unicorn_bin=None, gunicorn_bin=None,
-                 pidfile=None, boot_timeout=30, args=''):
+                 puma_bin=None, pidfile=None, boot_timeout=30, args=''):
         """
 
         Creates a new Herder instance.
@@ -59,9 +61,11 @@ class Herder(object):
                        (Default: None)
         gunicorn_bin - path of specific gunicorn to run
                        (Default: None)
+        puma_bin     - path of specific puma to run
+                       (Default: None)
         pidfile      - path of the pidfile to write
-                       (Default: gunicorn.pid or unicorn.pid depending on the value of
-                        the unicorn parameter)
+                       (Default: gunicorn.pid, unicorn.pid or puma.pid depending
+                       on the value of the unicorn parameter)
         args         - any additional arguments to pass to the unicorn executable
                        (Default: '')
 
@@ -69,11 +73,14 @@ class Herder(object):
 
         self.unicorn_bin = unicorn_bin
         self.gunicorn_bin = gunicorn_bin
+        self.puma_bin = puma_bin
 
         if unicorn_bin:
             self.unicorn = unicorn_bin
         elif gunicorn_bin:
             self.unicorn = gunicorn_bin
+        elif puma_bin:
+            self.unicorn = puma_bin
         else:
             self.unicorn = unicorn
         self.pidfile = '%s.pid' % self.unicorn if pidfile is None else pidfile
@@ -81,7 +88,7 @@ class Herder(object):
         self.boot_timeout = boot_timeout
 
         try:
-            if not unicorn_bin and not gunicorn_bin:
+            if not unicorn_bin and not gunicorn_bin and not puma_bin:
                 COMMANDS[self.unicorn]
         except KeyError:
             raise HerderError('Unknown unicorn type: %s' % self.unicorn)
@@ -107,6 +114,9 @@ class Herder(object):
         elif self.gunicorn_bin:
             cmd = COMMANDS['gunicorn_bin']
             cmd = cmd.format(gunicorn_bin=self.unicorn, pidfile=self.pidfile, args=self.args)
+        elif self.puma_bin:
+            cmd = COMMANDS['puma_bin']
+            cmd = cmd.format(puma_bin=self.unicorn, pidfile=self.pidfile, args=self.args)
         else:
             return False
 
