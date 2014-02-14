@@ -158,7 +158,7 @@ class Herder(object):
         while True:
             if not self._loop_inner():
                 # The unicorn has died. So should we.
-                log.error('Unicorn died. Exiting.')
+                log.error('%s died. Exiting.', self.unicorn.title())
                 return 1
             time.sleep(2)
 
@@ -175,13 +175,14 @@ class Herder(object):
             return False
 
         if old_master is None:
-            log.info('Unicorn booted (PID %s)', self.master.pid)
+            log.info('%s booted (PID %s)', self.unicorn.title(), self.master.pid)
 
             MANAGED_PIDS.add(self.master.pid)
 
         # Unicorn has forked a new master
         if old_master is not None and self.master.pid != old_master.pid:
-            log.info('Unicorn changed PID (was %s, now %s)',
+            log.info('%s changed PID (was %s, now %s)',
+                     self.unicorn.title(),
                      old_master.pid,
                      self.master.pid)
 
