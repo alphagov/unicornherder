@@ -4,24 +4,32 @@ import psutil
 import shlex
 import signal
 import subprocess
+import sys
 import time
 
-from .timeout import timeout, TimeoutError
 
 log = logging.getLogger(__name__)
 
 COMMANDS = {
-    'unicorn': 'unicorn -D -P "{pidfile}" {args}',
-    'unicorn_rails': 'unicorn_rails -D -P "{pidfile}" {args}',
-    'unicorn_bin': '{unicorn_bin} -D -P "{pidfile}" {args}',
-    'gunicorn': 'gunicorn -D -p "{pidfile}" {args}',
-    'gunicorn_django': 'gunicorn_django -D -p "{pidfile}" {args}',
-    'gunicorn_bin': '{gunicorn_bin} -D -p "{pidfile}" {args}'
+    'unicorn': 'unicorn -D -P "%(pidfile)s" %(args)s',
+    'unicorn_rails': 'unicorn_rails -D -P "%(pidfile)s" %(args)s',
+    'unicorn_bin': '%(unicorn_bin)s -D -P "%(pidfile)s" %(args)s',
+    'gunicorn': 'gunicorn -D -p "%(pidfile)s" %(args)s',
+    'gunicorn_django': 'gunicorn_django -D -p "%(pidfile)s" %(args)s',
+    'gunicorn_bin': '%(gunicorn_bin)s -D -p "%(pidfile)s" %(args)s'
 }
 
 MANAGED_PIDS = set([])
 
 WORKER_WAIT = 120
+
+
+def _fail(signal, frame):
+        raise TimeoutError("%s second timeout expired" % time)
+
+
+class TimeoutError(Exception):
+    pass
 
 
 class HerderError(Exception):
@@ -100,13 +108,13 @@ class Herder(object):
         """
         if self.unicorn in COMMANDS:
             cmd = COMMANDS[self.unicorn]
-            cmd = cmd.format(pidfile=self.pidfile, args=self.args)
+            cmd = cmd % {'pidfile': self.pidfile, 'args': self.args}
         elif self.unicorn_bin:
             cmd = COMMANDS['unicorn_bin']
-            cmd = cmd.format(unicorn_bin=self.unicorn, pidfile=self.pidfile, args=self.args)
+            cmd = cmd % {'unicorn_bin': self.unicorn, 'pidfile': self.pidfile, 'args': self.args}
         elif self.gunicorn_bin:
             cmd = COMMANDS['gunicorn_bin']
-            cmd = cmd.format(gunicorn_bin=self.unicorn, pidfile=self.pidfile, args=self.args)
+            cmd = cmd % {'gunicorn_bin': self.unicorn, 'pidfile': self.pidfile, 'args': self.args}
         else:
             return False
 
@@ -115,7 +123,8 @@ class Herder(object):
         cmd = shlex.split(cmd)
         try:
             process = subprocess.Popen(cmd)
-        except OSError as e:
+        except OSError:
+            e = sys.exc_info()[1]
             if e.errno == 2:
                 log.error("Command '%s' not found. Is it installed?", cmd[0])
                 return False
@@ -125,8 +134,11 @@ class Herder(object):
         MANAGED_PIDS.add(process.pid)
 
         try:
-            with timeout(self.boot_timeout):
-                process.wait()
+            signal.signal(signal.SIGALRM, _fail)
+            signal.alarm(self.boot_timeout)
+            process.wait()
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, signal.SIG_DFL)
         except TimeoutError:
             log.error('%s failed to daemonize within %s seconds. Sending TERM '
                       'and exiting.', self.unicorn, self.boot_timeout)
@@ -201,11 +213,13 @@ class Herder(object):
         for _ in range(5):
             try:
                 content = open(self.pidfile).read()
-            except IOError as e:
+            except IOError:
+                e = sys.exc_info()[1]
                 try:
                     log.debug('pidfile missing, checking for %s.oldbin', self.pidfile)
                     content = open(self.pidfile + ".oldbin").read()
-                except IOError as e:
+                except IOError:
+                    e = sys.exc_info()[1]
                     # If we are expecting unicorn to die, then this is normal, and
                     # we can just return None, thus triggering a clean exit of the
                     # Herder.
@@ -218,7 +232,8 @@ class Herder(object):
                         continue
             try:
                 pid = int(content)
-            except ValueError as e:
+            except ValueError:
+                e = sys.exc_info()[1]
                 log.debug('Got ValueError while reading pidfile. Is "%s" an integer? %s',
                           content, e)
                 log.debug('This is usually not fatal. Retrying in a moment...')
