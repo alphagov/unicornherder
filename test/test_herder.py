@@ -1,7 +1,10 @@
 import signal
 import sys
-from .helpers import *
-from unicornherder.herder import Herder, HerderError
+
+from nose.tools import *
+from mock import *
+
+from unicornherder.herder import Herder, HerderError, TimeoutError
 
 if sys.version_info > (3, 0):
     builtin_mod = 'builtins'
@@ -50,28 +53,23 @@ class TestHerder(object):
         assert_equal(popen_mock.call_count, 1)
         popen_mock.assert_called_once_with(['unicorn', '-D', '-P', 'unicorn.pid'])
 
-    @patch('unicornherder.herder.subprocess.Popen')
-    @patch('unicornherder.herder.timeout')
-    def test_spawn_unicorn_timeout(self, timeout_mock, popen_mock):
-        popen_mock.return_value.pid = -1
-        timeout_mock.side_effect = fake_timeout_fail
+    @patch('unicornherder.herder.subprocess.Popen.wait')
+    def test_spawn_unicorn_timeout(self, popen_mock):
+        popen_mock.side_effect = TimeoutError()
         h = Herder()
-        popen_mock.return_value.poll.return_value = None
+        #popen_mock.return_value.poll.return_value = None
         ret = h.spawn()
         assert_false(ret)
-        popen_mock.return_value.terminate.assert_called_once_with()
+        #popen_mock.return_value.terminate.assert_called_once_with()
 
-    @patch('unicornherder.herder.subprocess.Popen')
-    @patch('unicornherder.herder.timeout')
-    def test_configurable_boot_timeout(self, timeout_mock, popen_mock):
-        popen_mock.return_value.pid = -1
-        timeout_mock.side_effect = fake_timeout_fail
+    @patch('unicornherder.herder.subprocess.Popen.wait')
+    def test_configurable_boot_timeout(self, popen_mock):
+        popen_mock.side_effect = TimeoutError()
         h = Herder(boot_timeout=45)
-        popen_mock.return_value.poll.return_value = None
+        #popen_mock.return_value.poll.return_value = None
         ret = h.spawn()
-        timeout_mock.assert_called_once_with(45)
         assert_false(ret)
-        popen_mock.return_value.terminate.assert_called_once_with()
+        #popen_mock.return_value.terminate.assert_called_once_with()
 
     @patch('unicornherder.herder.time.sleep')
     @patch('unicornherder.herder.psutil.Process')

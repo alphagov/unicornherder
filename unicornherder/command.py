@@ -1,12 +1,11 @@
-from __future__ import print_function
 
 import argparse
 import logging
 import os
 import sys
 
-from . import __version__
-from .herder import Herder
+from unicornherder import __version__
+from unicornherder.herder import Herder
 
 
 parser = argparse.ArgumentParser(description='Manage daemonized (g)unicorns.')
