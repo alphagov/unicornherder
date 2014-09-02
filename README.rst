@@ -1,8 +1,8 @@
 Unicorn Herder
 ==============
 
-.. image:: https://secure.travis-ci.org/alphagov/unicornherder.png
-   :target: http://travis-ci.org/alphagov/unicornherder
+.. image:: https://secure.travis-ci.org/gds-operations/unicornherder.png
+   :target: http://travis-ci.org/gds-operations/unicornherder
 
 `Unicorn <http://unicorn.bogomips.org/>`_ and `Gunicorn
 <http://gunicorn.org/>`_ are awesome tools for people writing web services in
@@ -92,6 +92,11 @@ with Unicorn Herder is given below::
     #  . /var/venv/myapp/bin/activate
     #  exec unicornherder -- -w 4 -b "127.0.0.1:$PORT" myapp:app
     #end script
+
+Discussion
+----------
+
+You can discuss this tool with our open source mailing list: gds-operations-open-source@digital.cabinet-office.gov.uk
 
 License
 -------
