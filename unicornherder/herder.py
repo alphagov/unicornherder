@@ -190,7 +190,7 @@ class Herder(object):
             MANAGED_PIDS.add(self.master.pid)
 
             if self.reloading:
-                _wait_for_workers(self.master, self.overlap)
+                _wait_for_workers(self.overlap)
                 _kill_old_master(old_master)
                 self.reloading = False
 
@@ -271,7 +271,7 @@ def _emergency_slaughter():
             pass
 
 
-def _wait_for_workers(process, overlap):
+def _wait_for_workers(overlap):
     # TODO: do something smarter here
     time.sleep(overlap)
 
