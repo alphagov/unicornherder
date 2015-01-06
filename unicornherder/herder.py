@@ -62,6 +62,7 @@ class Herder(object):
         pidfile      - path of the pidfile to write
                        (Default: gunicorn.pid or unicorn.pid depending on the value of
                         the unicorn parameter)
+        boot_timeout - how long to wait for the new process to daemonize itself
         args         - any additional arguments to pass to the unicorn executable
                        (Default: '')
 
@@ -276,6 +277,7 @@ def _wait_for_workers(process):
 
 
 def _kill_old_master(process):
+    # SIGWINCH tells the master to kill its workers:
     log.debug("Sending WINCH to old master (PID %s)", process.pid)
     process.send_signal(signal.SIGWINCH)
     time.sleep(1)
