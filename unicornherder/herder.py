@@ -21,8 +21,6 @@ COMMANDS = {
 
 MANAGED_PIDS = set([])
 
-WORKER_WAIT = 120
-
 
 class HerderError(Exception):
     pass
@@ -48,7 +46,7 @@ class Herder(object):
     """
 
     def __init__(self, unicorn='gunicorn', unicorn_bin=None, gunicorn_bin=None,
-                 pidfile=None, boot_timeout=30, args=''):
+                 pidfile=None, boot_timeout=30, overlap=120, args=''):
         """
 
         Creates a new Herder instance.
@@ -63,6 +61,7 @@ class Herder(object):
                        (Default: gunicorn.pid or unicorn.pid depending on the value of
                         the unicorn parameter)
         boot_timeout - how long to wait for the new process to daemonize itself
+        overlap      - how long to wait before killing the old unicorns when reloading
         args         - any additional arguments to pass to the unicorn executable
                        (Default: '')
 
@@ -80,6 +79,7 @@ class Herder(object):
         self.pidfile = '%s.pid' % self.unicorn if pidfile is None else pidfile
         self.args = args
         self.boot_timeout = boot_timeout
+        self.overlap = overlap
 
         try:
             if not unicorn_bin and not gunicorn_bin:
@@ -190,7 +190,7 @@ class Herder(object):
             MANAGED_PIDS.add(self.master.pid)
 
             if self.reloading:
-                _wait_for_workers(self.master)
+                _wait_for_workers(self.master, self.overlap)
                 _kill_old_master(old_master)
                 self.reloading = False
 
@@ -271,9 +271,9 @@ def _emergency_slaughter():
             pass
 
 
-def _wait_for_workers(process):
+def _wait_for_workers(process, overlap):
     # TODO: do something smarter here
-    time.sleep(WORKER_WAIT)
+    time.sleep(overlap)
 
 
 def _kill_old_master(process):

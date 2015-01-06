@@ -53,8 +53,8 @@ intended to be daemonized.
 
 Unicorn Herder *also* intercepts ``SIGHUP``, because this is the signal sent by
 Upstart when you call ``initctl reload``, and uses it to trigger a hot-reload of
-its Unicorn instance. This process will take two minutes, in order to give the
-new workers time to start up.
+its Unicorn instance. This process will take two minutes by default, in order to
+give the new workers time to start up.
 
 **NB**: There will be a period during hot-reload when requests are served by
 both old and new workers. This might have serious implications if you are
