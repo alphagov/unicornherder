@@ -25,6 +25,7 @@ setup(
     author='Nick Stenning',
     author_email='nick@whiteink.com',
     maintainer='Government Digital Service',
+    maintainer_email='gds-operations-open-source@digital.cabinet-office.gov.uk',
     url='https://github.com/gds-operations/unicornherder',
 
     description='Unicorn Herder: manage daemonized (g)unicorns',
