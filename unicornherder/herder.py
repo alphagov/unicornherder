@@ -277,7 +277,20 @@ def _wait_for_workers(overlap):
 
 
 def _kill_old_master(process):
-    # SIGWINCH tells the master to kill its workers:
+    """Shut down the old server gracefully.
+
+    There's a bit of extra complexity here, because Unicorn and Gunicorn handle
+    signals differently : both respond to SIGWINCH by gracefully stopping their
+    workers, but while Unicorn treats SIGQUIT as a graceful shutdown and
+    SIGTERM as a quick shutdown, Gunicorn reverses the meaning of these two.
+
+    <http://unicorn.bogomips.org/SIGNALS.html>
+    <http://gunicorn-docs.readthedocs.org/en/latest/signals.html>
+
+    We get around this by sending SIGWINCH first, giving the worker processes
+    some time to shut themselves down first.
+
+    """
     log.debug("Sending WINCH to old master (PID %s)", process.pid)
     process.send_signal(signal.SIGWINCH)
     time.sleep(1)
