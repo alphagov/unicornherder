@@ -23,7 +23,10 @@ parser.add_argument('-g', '--gunicorn-bin', default=None, metavar='GUNICORN_BIN'
 parser.add_argument('-p', '--pidfile', metavar='PATH',
                     help='Path to the pidfile that unicorn will write')
 parser.add_argument('-t', '--timeout', default=30, type=int, metavar='30', dest='boot_timeout',
-                    help='Timeout in seconds to start workers')
+                    help='Time to wait for new processes to daemonize themselves')
+parser.add_argument('-o', '--overlap', default=120, type=int, metavar='120',
+                    dest='overlap',
+                    help='Time to wait before killing old unicorns when reloading')
 parser.add_argument('-v', '--version', action='version', version=__version__)
 parser.add_argument('args', nargs=argparse.REMAINDER,
                     help='Any additional arguments will be passed to unicorn/'

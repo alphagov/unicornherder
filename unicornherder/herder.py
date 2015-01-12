@@ -21,8 +21,6 @@ COMMANDS = {
 
 MANAGED_PIDS = set([])
 
-WORKER_WAIT = 120
-
 
 class HerderError(Exception):
     pass
@@ -48,7 +46,7 @@ class Herder(object):
     """
 
     def __init__(self, unicorn='gunicorn', unicorn_bin=None, gunicorn_bin=None,
-                 pidfile=None, boot_timeout=30, args=''):
+                 pidfile=None, boot_timeout=30, overlap=120, args=''):
         """
 
         Creates a new Herder instance.
@@ -62,6 +60,8 @@ class Herder(object):
         pidfile      - path of the pidfile to write
                        (Default: gunicorn.pid or unicorn.pid depending on the value of
                         the unicorn parameter)
+        boot_timeout - how long to wait for the new process to daemonize itself
+        overlap      - how long to wait before killing the old unicorns when reloading
         args         - any additional arguments to pass to the unicorn executable
                        (Default: '')
 
@@ -79,6 +79,7 @@ class Herder(object):
         self.pidfile = '%s.pid' % self.unicorn if pidfile is None else pidfile
         self.args = args
         self.boot_timeout = boot_timeout
+        self.overlap = overlap
 
         try:
             if not unicorn_bin and not gunicorn_bin:
@@ -189,7 +190,7 @@ class Herder(object):
             MANAGED_PIDS.add(self.master.pid)
 
             if self.reloading:
-                _wait_for_workers(self.master)
+                _wait_for_workers(self.overlap)
                 _kill_old_master(old_master)
                 self.reloading = False
 
@@ -270,12 +271,26 @@ def _emergency_slaughter():
             pass
 
 
-def _wait_for_workers(process):
+def _wait_for_workers(overlap):
     # TODO: do something smarter here
-    time.sleep(WORKER_WAIT)
+    time.sleep(overlap)
 
 
 def _kill_old_master(process):
+    """Shut down the old server gracefully.
+
+    There's a bit of extra complexity here, because Unicorn and Gunicorn handle
+    signals differently : both respond to SIGWINCH by gracefully stopping their
+    workers, but while Unicorn treats SIGQUIT as a graceful shutdown and
+    SIGTERM as a quick shutdown, Gunicorn reverses the meaning of these two.
+
+    <http://unicorn.bogomips.org/SIGNALS.html>
+    <http://gunicorn-docs.readthedocs.org/en/latest/signals.html>
+
+    We get around this by sending SIGWINCH first, giving the worker processes
+    some time to shut themselves down first.
+
+    """
     log.debug("Sending WINCH to old master (PID %s)", process.pid)
     process.send_signal(signal.SIGWINCH)
     time.sleep(1)
