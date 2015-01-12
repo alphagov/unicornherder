@@ -62,6 +62,11 @@ running data migrations between deploying versions of your application. Please
 bear this in mind when deciding if you should use Unicorn Herder's
 hot-reloading feature.
 
+This diagram shows the interactions between unicornherder and (g)unicorn masters
+at boot and around hot-reloading with HUP (ignoring workers):
+
+.. image:: unicornherder-diagram.jpeg
+
 Upstart config
 --------------
 
