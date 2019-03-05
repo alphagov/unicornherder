@@ -11,9 +11,9 @@ from .timeout import timeout, TimeoutError
 log = logging.getLogger(__name__)
 
 COMMANDS = {
-    'unicorn': 'unicorn -D -P "{pidfile}" {args}',
+    'unicorn': 'unicorn -D {args}',
     'unicorn_rails': 'unicorn_rails -D {args}',
-    'unicorn_bin': '{unicorn_bin} -D -P "{pidfile}" {args}',
+    'unicorn_bin': '{unicorn_bin} -D {args}',
     'gunicorn': 'gunicorn -D -p "{pidfile}" {args}',
     'gunicorn_django': 'gunicorn_django -D -p "{pidfile}" {args}',
     'gunicorn_bin': '{gunicorn_bin} -D -p "{pidfile}" {args}'
@@ -101,10 +101,10 @@ class Herder(object):
         """
         if self.unicorn in COMMANDS:
             cmd = COMMANDS[self.unicorn]
-            cmd = cmd.format(pidfile=self.pidfile, args=self.args)
+            cmd = cmd.format(args=self.args)
         elif self.unicorn_bin:
             cmd = COMMANDS['unicorn_bin']
-            cmd = cmd.format(unicorn_bin=self.unicorn, pidfile=self.pidfile, args=self.args)
+            cmd = cmd.format(unicorn_bin=self.unicorn, args=self.args)
         elif self.gunicorn_bin:
             cmd = COMMANDS['gunicorn_bin']
             cmd = cmd.format(gunicorn_bin=self.unicorn, pidfile=self.pidfile, args=self.args)
