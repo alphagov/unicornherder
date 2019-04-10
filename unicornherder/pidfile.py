@@ -12,6 +12,7 @@ class Pidfile:
 
     def __init__(self, filename):
         self.filenames = [
+            '{filename}.2'.format(filename=filename),
             filename,
             '{filename}.oldbin'.format(filename=filename)
         ]
