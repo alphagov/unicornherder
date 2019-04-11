@@ -6,6 +6,7 @@ import signal
 import subprocess
 import time
 
+from .pidfile import Pidfile, PidfileError
 from .timeout import timeout, TimeoutError
 
 log = logging.getLogger(__name__)
@@ -199,34 +200,22 @@ class Herder(object):
         return True
 
     def _read_pidfile(self):
+        pidfile = Pidfile(self.pidfile)
+
         for _ in range(5):
             try:
-                content = open(self.pidfile).read()
-            except IOError as e:
-                try:
-                    log.debug('pidfile missing, checking for %s.oldbin', self.pidfile)
-                    content = open(self.pidfile + ".oldbin").read()
-                except IOError as e:
-                    # If we are expecting unicorn to die, then this is normal, and
-                    # we can just return None, thus triggering a clean exit of the
-                    # Herder.
-                    if self.terminating:
-                        return None
-                    else:
-                        log.debug('Got IOError while attempting to read pidfile: %s', e)
-                        log.debug('This is usually not fatal. Retrying in a moment...')
-                        time.sleep(1)
-                        continue
-            try:
-                pid = int(content)
-            except ValueError as e:
-                log.debug('Got ValueError while reading pidfile. Is "%s" an integer? %s',
-                          content, e)
-                log.debug('This is usually not fatal. Retrying in a moment...')
-                time.sleep(1)
-                continue
-
-            return pid
+                return pidfile.pid
+            except PidfileError as error:
+                # If we are expecting unicorn to die, then this is normal, and
+                # we can just return None, thus triggering a clean exit of the
+                # Herder.
+                if self.terminating:
+                    return None
+                else:
+                    log.debug('Got an error while attempting to read pidfile: %s', error)
+                    log.debug('This is usually not fatal. Retrying in a moment...')
+                    time.sleep(1)
+                    continue
 
         raise HerderError('Failed to read pidfile %s after 5 attempts, aborting!' %
                           self.pidfile)
