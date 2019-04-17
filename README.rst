@@ -108,3 +108,15 @@ License
 
 Unicorn Herder is released under the MIT license, a copy of which can be found
 in ``LICENSE``.
+
+Uploading
+---------
+
+To upload a new version of ``unicornherder`` to PyPI, you can follow these
+instructions:
+
+    $ python setup.py sdist
+    $ pip install twine
+    $ twine upload dist/*
+
+The credentials for the GDS PyPI account are available in govuk-secrets.
