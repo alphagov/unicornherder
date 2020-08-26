@@ -8,19 +8,19 @@ class TestPidfile(unittest.TestCase):
 
     def test_pidfile_exists(self):
         with tempfile.NamedTemporaryFile() as file:
-            file.write('123\n')
+            file.write('123\n'.encode(encoding='UTF-8'))
             file.flush()
             assert Pidfile(file.name).pid == 123
 
     def test_oldbin_pidfile_exists(self):
         with tempfile.NamedTemporaryFile(suffix='.oldbin') as file:
-            file.write('123\n')
+            file.write('123\n'.encode(encoding='UTF-8'))
             file.flush()
             assert Pidfile(file.name[:-7]).pid == 123
 
     def test_second_gunicorn_pidfile_exists(self):
         with tempfile.NamedTemporaryFile(suffix='.2') as file:
-            file.write('123\n')
+            file.write('123\n'.encode(encoding='UTF-8'))
             file.flush()
             assert Pidfile(file.name[:-2]).pid == 123
 
