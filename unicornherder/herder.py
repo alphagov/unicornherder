@@ -47,7 +47,7 @@ class Herder(object):
     """
 
     def __init__(self, unicorn='gunicorn', unicorn_bin=None, gunicorn_bin=None,
-                 pidfile=None, boot_timeout=30, overlap=120, args=''):
+                 pidfile=None, boot_timeout=30, overlap=15, args=''):
         """
 
         Creates a new Herder instance.
@@ -191,7 +191,7 @@ class Herder(object):
             MANAGED_PIDS.add(self.master.pid)
 
             if self.reloading:
-                _wait_for_workers(self.overlap)
+                _wait_for_workers(self.overlap, self.master, old_master)
                 _kill_old_master(old_master)
                 self.reloading = False
 
@@ -260,10 +260,28 @@ def _emergency_slaughter():
             pass
 
 
-def _wait_for_workers(overlap):
-    # TODO: do something smarter here
-    time.sleep(overlap)
+def _wait_for_workers(overlap, new_process, old_process):
+    # We expect the current process has one extra child (the new process that
+    # was forked aside from the usual number of workers
+    current_workers = len(old_process.children()) - 1
+    # We hope for same number of workers, if we don't have that we'll accept 1
+    expected_children = max(current_workers, 1)
+    # Within 2 minutes we expect to have recovered all our workers, otherwise
+    # we'll assume it's an intentional drop in workers.
+    maximum_time = 120
+    try:
+        with timeout(maximum_time):
+            while len(new_process.children()) < expected_children:
+                time.sleep(1)
 
+        log.debug('Found %s child processes for PID %s, old processes will '
+                  'be stopped in %s seconds',
+                  expected_children, new_process.pid, overlap)
+        time.sleep(overlap)
+    except TimeoutError:
+        log.warn('The expected number of workers (%s) was not reached in %s '
+                 'seconds for PID %s, continuing with shutdown',
+                 expected_children, maximum_time, new_process.pid)
 
 def _kill_old_master(process):
     """Shut down the old server gracefully.
