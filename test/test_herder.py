@@ -128,7 +128,7 @@ class TestHerder(object):
         # while waiting for workers
         sleep_mock.asset_any_call(1)
         # overlap of both processes
-        sleep_mock.asset_any_call(15)
+        sleep_mock.asset_any_call(30)
 
     @patch('unicornherder.herder.time.sleep')
     @patch('unicornherder.herder.timeout')
