@@ -47,24 +47,25 @@ class Herder(object):
     """
 
     def __init__(self, unicorn='gunicorn', unicorn_bin=None, gunicorn_bin=None,
-                 pidfile=None, boot_timeout=30, overlap=30, args=''):
+                 pidfile=None, boot_timeout=30, overlap=30, max_worker_time_wait=120, args=''):
         """
 
         Creates a new Herder instance.
 
-        unicorn      - the type of unicorn to herd; either 'unicorn' or 'gunicorn'
-                       (Default: gunicorn)
-        unicorn_bin  - path of specific unicorn to run
-                       (Default: None)
-        gunicorn_bin - path of specific gunicorn to run
-                       (Default: None)
-        pidfile      - path of the pidfile to write
-                       (Default: gunicorn.pid or unicorn.pid depending on the value of
-                        the unicorn parameter)
-        boot_timeout - how long to wait for the new process to daemonize itself
-        overlap      - how long to wait before killing the old unicorns when reloading
-        args         - any additional arguments to pass to the unicorn executable
-                       (Default: '')
+        unicorn                 - the type of unicorn to herd; either 'unicorn' or 'gunicorn'
+                                  (Default: gunicorn)
+        unicorn_bin             - path of specific unicorn to run
+                                  (Default: None)
+        gunicorn_bin            - path of specific gunicorn to run
+                                  (Default: None)
+        pidfile                 - path of the pidfile to write
+                                  (Default: gunicorn.pid or unicorn.pid depending on the value of
+                                  the unicorn parameter)
+        boot_timeout            - how long to wait for the new process to daemonize itself
+        overlap                 - how long to wait before killing the old unicorns when reloading
+        max_worker_time_wait    - how long to wait before a worker comes up again
+        args                    - any additional arguments to pass to the unicorn executable
+                                  (Default: '')
 
         """
 
@@ -81,6 +82,7 @@ class Herder(object):
         self.args = args
         self.boot_timeout = boot_timeout
         self.overlap = overlap
+        self.max_worker_time_wait = max_worker_time_wait
 
         try:
             if not unicorn_bin and not gunicorn_bin:
@@ -191,7 +193,7 @@ class Herder(object):
             MANAGED_PIDS.add(self.master.pid)
 
             if self.reloading:
-                _wait_for_workers(self.overlap, self.master, old_master)
+                _wait_for_workers(self.overlap, self.max_worker_time_wait, self.master, old_master)
                 _kill_old_master(old_master)
                 self.reloading = False
 
@@ -260,7 +262,7 @@ def _emergency_slaughter():
             pass
 
 
-def _wait_for_workers(overlap, new_process, old_process):
+def _wait_for_workers(overlap, max_worker_time_wait, new_process, old_process):
     # We expect the current process has one extra child (the new process that
     # was forked aside from the usual number of workers
     current_workers = len(old_process.children()) - 1
@@ -268,7 +270,7 @@ def _wait_for_workers(overlap, new_process, old_process):
     expected_children = max(current_workers, 1)
     # Within 2 minutes we expect to have recovered all our workers, otherwise
     # we'll assume it's an intentional drop in workers.
-    maximum_time = 120
+    maximum_time = max_worker_time_wait
     try:
         with timeout(maximum_time):
             while len(new_process.children()) < expected_children:
