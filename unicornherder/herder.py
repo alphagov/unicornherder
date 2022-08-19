@@ -47,7 +47,7 @@ class Herder(object):
     """
 
     def __init__(self, unicorn='gunicorn', unicorn_bin=None, gunicorn_bin=None,
-                 pidfile=None, boot_timeout=30, overlap=30, args=''):
+                 pidfile=None, boot_timeout=30, pidfile_timeout=5, overlap=30, args=''):
         """
 
         Creates a new Herder instance.
@@ -62,6 +62,7 @@ class Herder(object):
                        (Default: gunicorn.pid or unicorn.pid depending on the value of
                         the unicorn parameter)
         boot_timeout - how long to wait for the new process to daemonize itself
+        pidfile_timeout - how long to wait for pidfile to be written after daemonization
         overlap      - how long to wait before killing the old unicorns when reloading
         args         - any additional arguments to pass to the unicorn executable
                        (Default: '')
@@ -80,6 +81,7 @@ class Herder(object):
         self.pidfile = '%s.pid' % self.unicorn if pidfile is None else pidfile
         self.args = args
         self.boot_timeout = boot_timeout
+        self.pidfile_timeout = pidfile_timeout
         self.overlap = overlap
 
         try:
@@ -202,7 +204,10 @@ class Herder(object):
     def _read_pidfile(self):
         pidfile = Pidfile(self.pidfile)
 
-        for _ in range(5):
+        start = time.time()
+
+        while True:
+
             try:
                 return pidfile.pid
             except PidfileError as error:
@@ -215,10 +220,13 @@ class Herder(object):
                     log.debug('Got an error while attempting to read pidfile: %s', error)
                     log.debug('This is usually not fatal. Retrying in a moment...')
                     time.sleep(1)
-                    continue
+                    if (time.time() - start) > self.pidfile_timeout:
+                        break
+                    else:
+                        continue
 
-        raise HerderError('Failed to read pidfile %s after 5 attempts, aborting!' %
-                          self.pidfile)
+        raise HerderError('Failed to read pidfile %s after %s seconds, aborting!' %
+                          (self.pidfile, self.pidfile_timeout))
 
     def _handle_signal(self, name):
         def _handler(signum, frame):

@@ -24,6 +24,8 @@ parser.add_argument('-p', '--pidfile', metavar='PATH',
                     help='Path to the pidfile that unicorn will write')
 parser.add_argument('-t', '--timeout', default=30, type=int, metavar='30', dest='boot_timeout',
                     help='Time to wait for new processes to daemonize themselves')
+parser.add_argument('--pidfile-timeout', default=5, type=int, metavar='5', dest='pidfile_timeout',
+                    help='Time to wait for pidfile to be written after daemonization')
 parser.add_argument('-o', '--overlap', default=30, type=int, metavar='30',
                     dest='overlap',
                     help='Time to wait before killing old unicorns when reloading')
